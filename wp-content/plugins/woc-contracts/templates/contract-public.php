@@ -110,41 +110,53 @@ $signature_url = get_post_meta( $contract_id, WOC_Contracts_CPT::META_SIGNATURE_
 <p class="woc-contract-copyright">技術支援 線上合約</p>
 
 <script>
-(function() {
+(function () {
     var canvas = document.getElementById('woc-signature-pad');
     if (!canvas) return;
 
-    var ctx      = canvas.getContext('2d');
-    var drawing  = false;
-    var hasDrawn = false;
-    var scale    = 1;           // 內部像素 / 螢幕像素 的比例
+    var ctx       = canvas.getContext('2d');
+    var drawing   = false;
+    var hasDrawn  = false;
 
-    var BASE_WIDTH = 820;       // 至少存成 820px 寬
-    var RATIO_WH   = 400 / 600; // 高 / 寬，比例用你原本的
+    // 固定輸出解析度（檔案一律 820px 寬）
+    var BASE_WIDTH  = 820;
+    var BASE_HEIGHT = Math.round(BASE_WIDTH * (2 / 3)); // 跟之前 600x400 的比例一樣
+    var scaleX      = 1; // CSS → canvas 座標換算倍率（寬、高同一倍率）
 
     function setupCanvasSize() {
-        var parent = canvas.parentNode;
-        if (!parent) return;
+        // 目前在畫面上實際呈現的寬度（CSS）
+        var cssWidth = canvas.clientWidth || BASE_WIDTH;
 
-        // 畫面上實際佔用的寬度（CSS 像素）
-        var cssWidth = parent.clientWidth || 600;
+        // 實際畫布解析度固定
+        canvas.width  = BASE_WIDTH;
+        canvas.height = BASE_HEIGHT;
 
-        // 內部實際解析度：至少 820px，不會比畫面小
-        var internalWidth  = Math.max(cssWidth, BASE_WIDTH);
-        var internalHeight = Math.round(internalWidth * RATIO_WH);
+        // 320 → 820 之類的倍率
+        scaleX = BASE_WIDTH / cssWidth;
 
-        // 設定 canvas 內部解析度
-        canvas.width  = internalWidth;
-        canvas.height = internalHeight;
+        // 依比例算出要顯示在畫面上的高度，避免被拉扁
+        var cssHeight = BASE_HEIGHT / scaleX;
+        canvas.style.height = cssHeight + 'px';
 
-        // scale = 內部 / 外觀，用來換算座標
-        scale = internalWidth / cssWidth;
+        // ==== 線寬：桌機粗一點，手機正常 ====
+        var targetCssStroke;
 
-        // 線條粗細用「螢幕 2px」，換算成內部像素
-        ctx.lineWidth = 2 * scale;
-        ctx.lineCap   = 'round';
-        ctx.lineJoin  = 'round';
+        // scaleX 越小代表螢幕越寬（接近 820）
+        if ( scaleX <= 1.2 ) {
+            // 桌機：希望看起來大約 4px
+            targetCssStroke = 4;
+        } else {
+            // 手機 / 小螢幕：維持差不多 2.5px
+            targetCssStroke = 2.5;
+        }
+
+        // 轉成 canvas 解析度的線寬
+        ctx.lineWidth  = targetCssStroke * scaleX;
+        ctx.lineCap    = 'round';
+        ctx.lineJoin   = 'round';
+        ctx.strokeStyle = '#000';
     }
+
 
     setupCanvasSize();
     window.addEventListener('resize', setupCanvasSize);
@@ -161,10 +173,10 @@ $signature_url = get_post_meta( $contract_id, WOC_Contracts_CPT::META_SIGNATURE_
             clientY = e.clientY;
         }
 
-        // 螢幕座標 → 內部像素座標
         return {
-            x: (clientX - rect.left) * scale,
-            y: (clientY - rect.top) * scale
+            // CSS 座標 * scaleX → canvas 解析度座標
+            x: (clientX - rect.left) * scaleX,
+            y: (clientY - rect.top)  * scaleX
         };
     }
 
@@ -172,6 +184,7 @@ $signature_url = get_post_meta( $contract_id, WOC_Contracts_CPT::META_SIGNATURE_
         e.preventDefault();
         drawing  = true;
         hasDrawn = true;
+
         var p = getPos(e);
         ctx.beginPath();
         ctx.moveTo(p.x, p.y);
@@ -180,6 +193,7 @@ $signature_url = get_post_meta( $contract_id, WOC_Contracts_CPT::META_SIGNATURE_
     function draw(e) {
         if (!drawing) return;
         e.preventDefault();
+
         var p = getPos(e);
         ctx.lineTo(p.x, p.y);
         ctx.stroke();
@@ -191,11 +205,13 @@ $signature_url = get_post_meta( $contract_id, WOC_Contracts_CPT::META_SIGNATURE_
         drawing = false;
     }
 
+    // 滑鼠事件
     canvas.addEventListener('mousedown', startDraw);
     canvas.addEventListener('mousemove', draw);
     canvas.addEventListener('mouseup', endDraw);
     canvas.addEventListener('mouseleave', endDraw);
 
+    // 觸控事件
     canvas.addEventListener('touchstart', startDraw, { passive: false });
     canvas.addEventListener('touchmove',  draw,      { passive: false });
     canvas.addEventListener('touchend',   endDraw);
@@ -205,7 +221,7 @@ $signature_url = get_post_meta( $contract_id, WOC_Contracts_CPT::META_SIGNATURE_
     var hiddenInp = document.getElementById('woc_signature_data');
 
     if (clearBtn) {
-        clearBtn.addEventListener('click', function(e) {
+        clearBtn.addEventListener('click', function (e) {
             e.preventDefault();
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             hasDrawn = false;
@@ -213,7 +229,7 @@ $signature_url = get_post_meta( $contract_id, WOC_Contracts_CPT::META_SIGNATURE_
     }
 
     if (form) {
-        form.addEventListener('submit', function(e) {
+        form.addEventListener('submit', function (e) {
             if (!hasDrawn) {
                 e.preventDefault();
                 alert('請先在簽名欄位簽名。');
@@ -224,6 +240,7 @@ $signature_url = get_post_meta( $contract_id, WOC_Contracts_CPT::META_SIGNATURE_
     }
 })();
 </script>
+
 
 
 <?php
