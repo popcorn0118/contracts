@@ -117,26 +117,31 @@ $signature_url = get_post_meta( $contract_id, WOC_Contracts_CPT::META_SIGNATURE_
     var ctx      = canvas.getContext('2d');
     var drawing  = false;
     var hasDrawn = false;
+    var scale    = 1;           // 內部像素 / 螢幕像素 的比例
 
-    /**
-     * 依父層寬度設定 canvas 實際解析度
-     * 原本是 600 x 400，比例 = 400 / 600 = 2 / 3
-     */
+    var BASE_WIDTH = 820;       // 至少存成 820px 寬
+    var RATIO_WH   = 400 / 600; // 高 / 寬，比例用你原本的
+
     function setupCanvasSize() {
         var parent = canvas.parentNode;
         if (!parent) return;
 
-        var width = parent.clientWidth;
-        if (!width) {
-            width = 600; // fallback
-        }
+        // 畫面上實際佔用的寬度（CSS 像素）
+        var cssWidth = parent.clientWidth || 600;
 
-        var ratio = 400 / 600; // 高 / 寬
+        // 內部實際解析度：至少 820px，不會比畫面小
+        var internalWidth  = Math.max(cssWidth, BASE_WIDTH);
+        var internalHeight = Math.round(internalWidth * RATIO_WH);
 
-        canvas.width  = width;
-        canvas.height = Math.round(width * ratio);
+        // 設定 canvas 內部解析度
+        canvas.width  = internalWidth;
+        canvas.height = internalHeight;
 
-        ctx.lineWidth = 2;
+        // scale = 內部 / 外觀，用來換算座標
+        scale = internalWidth / cssWidth;
+
+        // 線條粗細用「螢幕 2px」，換算成內部像素
+        ctx.lineWidth = 2 * scale;
         ctx.lineCap   = 'round';
         ctx.lineJoin  = 'round';
     }
@@ -156,9 +161,10 @@ $signature_url = get_post_meta( $contract_id, WOC_Contracts_CPT::META_SIGNATURE_
             clientY = e.clientY;
         }
 
+        // 螢幕座標 → 內部像素座標
         return {
-            x: clientX - rect.left,
-            y: clientY - rect.top
+            x: (clientX - rect.left) * scale,
+            y: (clientY - rect.top) * scale
         };
     }
 
@@ -218,6 +224,7 @@ $signature_url = get_post_meta( $contract_id, WOC_Contracts_CPT::META_SIGNATURE_
     }
 })();
 </script>
+
 
 <?php
 get_footer();
