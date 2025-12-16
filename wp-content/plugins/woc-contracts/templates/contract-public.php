@@ -34,7 +34,16 @@ $signature_url = get_post_meta( $contract_id, WOC_Contracts_CPT::META_SIGNATURE_
         </h1> -->
 
         <div class="woc-contract-content">
-            <?php echo apply_filters( 'the_content', $post->post_content ); ?>
+            <?php
+            $content = apply_filters( 'the_content', $post->post_content );
+
+            // 套用全站合約變數（若 function 存在）
+            if ( function_exists( 'woc_replace_contract_vars' ) ) {
+                $content = woc_replace_contract_vars( $content );
+            }
+
+            echo $content;
+            ?>
         </div>
 
         <?php if ( $is_signed ) : ?>

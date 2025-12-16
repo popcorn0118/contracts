@@ -120,7 +120,161 @@ class WOC_Contracts_CPT {
             'edit_posts',         // 權限
             $submenu_slug         // 導向的頁面 slug
         );
+
+        add_submenu_page(
+            $parent_slug,
+            '合約變數',          // 頁面標題
+            '合約變數',          // 選單文字
+            'manage_options',    // 權限
+            'woc-contract-vars', // slug
+            [ __CLASS__, 'render_vars_page' ]
+        );
     }
+
+        /**
+     * 合約變數設定頁
+     * - 儲存在 options: woc_contract_global_vars
+     * - 變數代碼用 sanitize_key() 正規化
+     */
+    public static function render_vars_page() {
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( '權限不足。' );
+        }
+
+        // 儲存
+        if (
+            isset( $_POST['woc_vars_nonce'] ) &&
+            wp_verify_nonce( $_POST['woc_vars_nonce'], 'woc_save_vars' )
+        ) {
+            $keys   = isset( $_POST['woc_var_key'] )   ? (array) $_POST['woc_var_key']   : [];
+            $values = isset( $_POST['woc_var_value'] ) ? (array) $_POST['woc_var_value'] : [];
+
+            $vars = [];
+
+            foreach ( $keys as $i => $raw_key ) {
+                $raw_key = trim( wp_unslash( $raw_key ) );
+                $value   = isset( $values[ $i ] ) ? wp_unslash( $values[ $i ] ) : '';
+
+                if ( $raw_key === '' ) {
+                    continue;
+                }
+
+                // 正規化 key（轉小寫、只保留英數與底線）
+                $key = sanitize_key( $raw_key );
+                if ( $key === '' ) {
+                    continue;
+                }
+
+                // 內容允許基本 HTML
+                $vars[ $key ] = wp_kses_post( $value );
+            }
+
+            update_option( 'woc_contract_global_vars', $vars );
+
+            echo '<div class="updated"><p>已儲存合約變數。</p></div>';
+        }
+
+        // 讀取現有設定
+        if ( function_exists( 'woc_get_global_contract_vars' ) ) {
+            $vars = woc_get_global_contract_vars();
+        } else {
+            $vars = get_option( 'woc_contract_global_vars', [] );
+            if ( ! is_array( $vars ) ) {
+                $vars = [];
+            }
+        }
+
+        ?>
+        <div class="wrap">
+            <h1>合約變數</h1>
+
+            <p>
+                這裡設定的是「全站共用」的合約變數，例如公司名稱、統編、地址、電話等。<br>
+                在合約範本或合約內容中，可用 <code>{變數代碼}</code> 插入，例如：
+                <code>{company_name}</code>、<code>{company_office}</code>。
+            </p>
+
+            <form method="post">
+                <?php wp_nonce_field( 'woc_save_vars', 'woc_vars_nonce' ); ?>
+
+                <table class="widefat striped">
+                    <thead>
+                        <tr>
+                            <th style="width: 25%;">變數代碼（英文/數字/底線）</th>
+                            <th>內容</th>
+                        </tr>
+                    </thead>
+                    <tbody id="woc-vars-rows">
+                        <?php
+                        if ( empty( $vars ) ) {
+                            // 至少給一列空白
+                            $vars = [ '' => '' ];
+                        }
+
+                        foreach ( $vars as $key => $val ) : ?>
+                            <tr>
+                                <td>
+                                    <input type="text"
+                                           name="woc_var_key[]"
+                                           value="<?php echo esc_attr( $key ); ?>"
+                                           class="regular-text"
+                                           placeholder="例如 company_name">
+                                </td>
+                                <td>
+                                    <textarea name="woc_var_value[]"
+                                              rows="2"
+                                              class="large-text"
+                                              placeholder="例如 xx有限公司"><?php
+                                        echo esc_textarea( $val );
+                                    ?></textarea>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+
+                        <!-- 空白模板列，之後 JS 會 clone -->
+                        <tr class="woc-vars-empty-row" style="display:none;">
+                            <td>
+                                <input type="text"
+                                       name="woc_var_key[]"
+                                       value=""
+                                       class="regular-text"
+                                       placeholder="例如 company_office">
+                            </td>
+                            <td>
+                                <textarea name="woc_var_value[]"
+                                          rows="2"
+                                          class="large-text"></textarea>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>
+                    <button type="button" class="button" id="woc-add-var-row">新增一行</button>
+                </p>
+
+                <p>
+                    <button type="submit" class="button button-primary">儲存變數</button>
+                </p>
+            </form>
+        </div>
+
+        <script>
+        (function($){
+            $('#woc-add-var-row').on('click', function(e){
+                e.preventDefault();
+                var $tmpl  = $('.woc-vars-empty-row');
+                var $clone = $tmpl.clone();
+                $clone.removeClass('woc-vars-empty-row').show();
+                $clone.find('input, textarea').val('');
+                $('#woc-vars-rows').append($clone);
+            });
+        })(jQuery);
+        </script>
+        <?php
+    }
+
 
     /**
      * 後台紀錄 操作紀錄log

@@ -36,9 +36,17 @@ if ( ! defined( 'WOC_CONTRACTS_URL' ) ) {
 }
 
 
+// 1. CPT & 共用函式：不分前後台都要載入
 require_once WOC_CONTRACTS_PATH . 'includes/class-woc-contracts-cpt.php';
-require_once WOC_CONTRACTS_PATH . 'includes/class-woc-contracts-admin.php';
-require_once WOC_CONTRACTS_PATH . 'includes/class-woc-contracts-frontend.php';
+require_once WOC_CONTRACTS_PATH . 'includes/woc-contracts-functions.php';
+
+// 2. 後台 / 前台
+if ( is_admin() ) {
+    require_once WOC_CONTRACTS_PATH . 'includes/class-woc-contracts-admin.php';
+} else {
+    require_once WOC_CONTRACTS_PATH . 'includes/class-woc-contracts-frontend.php';
+}
+
 
 
 
