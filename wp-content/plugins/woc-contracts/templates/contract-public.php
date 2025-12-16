@@ -21,7 +21,7 @@ $signed_ip     = get_post_meta( $contract_id, WOC_Contracts_CPT::META_SIGNED_IP,
 $signature_url = get_post_meta( $contract_id, WOC_Contracts_CPT::META_SIGNATURE_IMAGE, true );
 ?>
 
-<div class="woc-contract-wrap" style="max-width:900px;margin:40px auto;padding:40px;background:#fff;">
+<div class="woc-contract-wrap">
     <?php if ( ! $valid ) : ?>
 
         <h1 style="text-align:center;font-size:28px;margin-bottom:20px;">合約連結無效</h1>
@@ -29,11 +29,11 @@ $signature_url = get_post_meta( $contract_id, WOC_Contracts_CPT::META_SIGNATURE_
 
     <?php else : ?>
 
-        <h1 style="text-align:center;font-size:28px;margin-bottom:30px;">
-            <?php echo esc_html( get_the_title( $contract_id ) ); ?>
-        </h1>
+        <!-- <h1 style="text-align:center;font-size:28px;margin-bottom:30px;">
+            <?php //echo esc_html( get_the_title( $contract_id ) ); ?>
+        </h1> -->
 
-        <div class="woc-contract-content" style="font-size:14px;line-height:1.8;">
+        <div class="woc-contract-content">
             <?php echo apply_filters( 'the_content', $post->post_content ); ?>
         </div>
 

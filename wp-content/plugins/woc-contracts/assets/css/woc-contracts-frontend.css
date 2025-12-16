@@ -1,26 +1,155 @@
 /* 合約前台版型（僅 contract-public.php 用） */
 
-.single-woc_contract #page > header, .single-woc_contract #page > footer {
-    display: none;
-}
 #content .ast-container {
     display: flex;
     flex-direction: column;
 }
+
 .woc-contract-wrap {
+    max-width:980px;
+    margin:40px auto;
+    padding:30px;
+    background:#fff;
     margin-bottom: 0px !important;
 }
-
-.woc-contract-copyright {
-    width: 100%;
-    text-align: center;
-    font-size: 14px;
-    margin-bottom: 0;
-    padding: 16px;
+.woc-contract-content {
+    color: #000;
+    font-size:16px;
+    line-height:1.8;
 }
 
-/* 簽名區 */
-#woc-signature-pad {
+/* 合約內容 */
+.signUsingTitle {
+	font-size: 24px;
+	text-align: center;
+	font-weight: bold;
+	position: relative;
+	float: left;
+    width: 100%;
+    margin-bottom: 10px;
+}
+.signUsingTitle span {
+	color: #fff;
+    background: #5a5a5a;
+    border-radius: 50px;
+    padding: 2px 15px;
+    position: relative;
+    z-index: 1;
+}
+.signUsingTitle:after {
+	content: '';
+    position: absolute;
+    width: 100%;
+    height: 5px;
+    /* border-bottom: 1px solid #e1e1e1; */
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+}
+.signUsing {
+	font-size: 14px;
+    text-align: center;
+    line-height: 19px;
+    margin-bottom: 10px;
+	color: #5c5c5c;
+	float: left;
+    width: 100%;
+}
+.signedImg {width: 100%;}
+.red {
+  color: red;
+}
+.c_t_center {
+    text-align: center;
+}
+.c_bg_gral {
+  background-color: #efefef !important;
+}
+.contract-container {
+  font-size: 16px;
+  line-height: 32px;
+}
+.c_title {
+  text-align: center;
+  margin-bottom: 15px;
+  font-weight: 900;
+  font-size: 24px;
+}
+.c_cont1 {
+  font-size: 16px;
+  line-height: 32px;
+}
+.c_cont2 {
+  font-size: 16px;
+  line-height: 32px;
+  list-style: cjk-ideographic;
+  padding-left: 23px;
+}
+.c_cont3 {
+  font-size: 16px;
+  line-height: 32px;
+  list-style: none;
+  padding: 3%;
+}
+.c_into {
+  list-style-type: disc;
+  list-style: none;
+  font-size: 16px;
+  width: 50%;
+  float: left;
+  margin: 30px 0;
+  padding: 0 20px;
+}
+.c_date {
+  float: left;
+  width: 100%;
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 22px;
+  position: relative;
+}
+.c_cont_chack{
+  display: block;
+  line-height: 1.6em;
+}
+.c_cont_b-line{
+  text-decoration: underline;
+}
+.fz-s {
+  
+}
+.seal-img {
+  width: 80px !important;
+  position: absolute;
+  right: 20px;
+  bottom: 0px;
+}
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  line-height: 2rem;
+}
+.row li {
+    width: 100%;
+    margin-bottom: 2rem;
+}
+.row .col-33 {
+    width: 33%;
+}
+@media (max-width: 767px) {
+  .c_into,.row .col-33 {
+    width: 100%;
+  }
+  .row li {
+        width: 100%;
+        margin-bottom: 1rem;
+    }
+}
+
+
+
+/* 簽名區 canvas */
+canvas#woc-signature-pad {
     display: block;
     width: 100%;
     max-width: 100%;
@@ -39,4 +168,19 @@
     display:block;
     width:100%;
     height:auto;
+}
+
+/* 版權宣告 */
+.woc-contract-copyright {
+    width: 100%;
+    text-align: center;
+    font-size: 14px;
+    margin-bottom: 0;
+    padding: 16px;
+}
+
+
+/* 隱藏 header, footer */
+.single-woc_contract #page > header, .single-woc_contract #page > footer {
+    display: none;
 }
