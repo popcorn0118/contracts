@@ -131,10 +131,15 @@ class WOC_Contracts_CPT {
         );
     }
 
-        /**
+    /**
      * 合約變數設定頁
      * - 儲存在 options: woc_contract_global_vars
      * - 變數代碼用 sanitize_key() 正規化
+     *   資料結構：
+     *   [
+     *     'company_name' => [ 'label' => '公司名稱', 'value' => 'xxx有限公司' ],
+     *     ...
+     *   ]
      */
     public static function render_vars_page() {
 
@@ -147,7 +152,9 @@ class WOC_Contracts_CPT {
             isset( $_POST['woc_vars_nonce'] ) &&
             wp_verify_nonce( $_POST['woc_vars_nonce'], 'woc_save_vars' )
         ) {
+
             $keys   = isset( $_POST['woc_var_key'] )   ? (array) $_POST['woc_var_key']   : [];
+            $labels = isset( $_POST['woc_var_label'] ) ? (array) $_POST['woc_var_label'] : [];
             $values = isset( $_POST['woc_var_value'] ) ? (array) $_POST['woc_var_value'] : [];
 
             $vars = [];
@@ -155,19 +162,21 @@ class WOC_Contracts_CPT {
             foreach ( $keys as $i => $raw_key ) {
                 $raw_key = trim( wp_unslash( $raw_key ) );
                 $value   = isset( $values[ $i ] ) ? wp_unslash( $values[ $i ] ) : '';
+                $label   = isset( $labels[ $i ] ) ? wp_unslash( $labels[ $i ] ) : '';
 
                 if ( $raw_key === '' ) {
                     continue;
                 }
 
-                // 正規化 key（轉小寫、只保留英數與底線）
                 $key = sanitize_key( $raw_key );
                 if ( $key === '' ) {
                     continue;
                 }
 
-                // 內容允許基本 HTML
-                $vars[ $key ] = wp_kses_post( $value );
+                $vars[ $key ] = [
+                    'label' => sanitize_text_field( $label ),
+                    'value' => wp_kses_post( $value ),
+                ];
             }
 
             update_option( 'woc_contract_global_vars', $vars );
@@ -175,14 +184,10 @@ class WOC_Contracts_CPT {
             echo '<div class="updated"><p>已儲存合約變數。</p></div>';
         }
 
-        // 讀取現有設定
-        if ( function_exists( 'woc_get_global_contract_vars' ) ) {
-            $vars = woc_get_global_contract_vars();
-        } else {
-            $vars = get_option( 'woc_contract_global_vars', [] );
-            if ( ! is_array( $vars ) ) {
-                $vars = [];
-            }
+        // 讀取現有設定（兼容舊資料：字串 -> 包成陣列）
+        $vars = get_option( 'woc_contract_global_vars', [] );
+        if ( ! is_array( $vars ) ) {
+            $vars = [];
         }
 
         ?>
@@ -192,7 +197,7 @@ class WOC_Contracts_CPT {
             <p>
                 這裡設定的是「全站共用」的合約變數，例如公司名稱、統編、地址、電話等。<br>
                 在合約範本或合約內容中，可用 <code>{變數代碼}</code> 插入，例如：
-                <code>{company_name}</code>、<code>{company_office}</code>。
+                <code>{company_name}</code>、<code>{company_address}</code>。
             </p>
 
             <form method="post">
@@ -201,6 +206,7 @@ class WOC_Contracts_CPT {
                 <table class="widefat striped">
                     <thead>
                         <tr>
+                            <th style="width: 20%;">識別文字</th>
                             <th style="width: 25%;">變數代碼（英文/數字/底線）</th>
                             <th>內容</th>
                         </tr>
@@ -208,12 +214,27 @@ class WOC_Contracts_CPT {
                     <tbody id="woc-vars-rows">
                         <?php
                         if ( empty( $vars ) ) {
-                            // 至少給一列空白
-                            $vars = [ '' => '' ];
+                            $vars = [ '' => [ 'label' => '', 'value' => '' ] ];
                         }
 
-                        foreach ( $vars as $key => $val ) : ?>
+                        foreach ( $vars as $key => $row ) :
+
+                            if ( is_array( $row ) ) {
+                                $label = isset( $row['label'] ) ? $row['label'] : '';
+                                $val   = isset( $row['value'] ) ? $row['value'] : '';
+                            } else {
+                                $label = '';
+                                $val   = $row;
+                            }
+                            ?>
                             <tr>
+                                <td>
+                                    <input type="text"
+                                           name="woc_var_label[]"
+                                           value="<?php echo esc_attr( $label ); ?>"
+                                           class="regular-text"
+                                           placeholder="公司名稱、公司地址…">
+                                </td>
                                 <td>
                                     <input type="text"
                                            name="woc_var_key[]"
@@ -234,6 +255,13 @@ class WOC_Contracts_CPT {
 
                         <!-- 空白模板列，之後 JS 會 clone -->
                         <tr class="woc-vars-empty-row" style="display:none;">
+                            <td>
+                                <input type="text"
+                                       name="woc_var_label[]"
+                                       value=""
+                                       class="regular-text"
+                                       placeholder="公司名稱、公司地址…">
+                            </td>
                             <td>
                                 <input type="text"
                                        name="woc_var_key[]"
@@ -274,6 +302,7 @@ class WOC_Contracts_CPT {
         </script>
         <?php
     }
+
 
 
     /**

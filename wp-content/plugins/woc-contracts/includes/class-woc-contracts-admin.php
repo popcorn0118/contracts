@@ -37,6 +37,9 @@ class WOC_Contracts_Admin {
         //後台紀錄 操作紀錄
         add_action( 'transition_post_status', [ __CLASS__, 'log_contract_created' ], 10, 3 );
 
+        // 發布區塊下方顯示可用變數
+        add_action( 'add_meta_boxes', [ __CLASS__, 'add_vars_helper_meta_box' ] );
+
     }
 
     /**
@@ -188,6 +191,7 @@ class WOC_Contracts_Admin {
             </select>
 
             <button type="button"
+                    style="margin-top: 10px"
                     class="button button-secondary"
                     id="woc-load-template-btn"
                     data-post-id="<?php echo esc_attr( $post->ID ); ?>"
@@ -197,8 +201,7 @@ class WOC_Contracts_Admin {
         </p>
 
         <p class="description">
-            選擇合約範本後，按「載入範本內容」，系統會將範本內容覆蓋到目前合約的內容欄位。<br>
-            建議在客戶簽名前先確認內容，簽名後不再更換範本。
+            選擇合約範本後，按「載入範本內容」，系統會將範本內容覆蓋到目前合約的內容欄位。
         </p>
         <?php
     }
@@ -333,14 +336,15 @@ class WOC_Contracts_Admin {
     }
 
     /**
-     * 後台載入 JS（只在「線上合約」編輯畫面）
+     * 後台載入 JS、CSS
      */
     public static function enqueue_admin_assets( $hook_suffix ) {
         global $post;
     
-        if ( ! isset( $post ) || $post->post_type !== WOC_Contracts_CPT::POST_TYPE_CONTRACT ) {
-            return;
-        }
+        // 只在「線上合約」編輯畫面
+        // if ( ! isset( $post ) || $post->post_type !== WOC_Contracts_CPT::POST_TYPE_CONTRACT ) {
+        //     return;
+        // }
     
         // 狀態：是否已簽署
         $status   = get_post_meta( $post->ID, WOC_Contracts_CPT::META_STATUS, true );
@@ -748,6 +752,68 @@ class WOC_Contracts_Admin {
         </script>
         <?php
     }
+
+    /**
+     * 在合約 / 合約範本側邊欄新增「可用合約變數」 meta box
+     */
+    public static function add_vars_helper_meta_box( $post_type ) {
+
+        if ( $post_type !== WOC_Contracts_CPT::POST_TYPE_CONTRACT
+             && $post_type !== WOC_Contracts_CPT::POST_TYPE_TEMPLATE ) {
+            return;
+        }
+
+        add_meta_box(
+            'woc-vars-helper',
+            '可用合約變數',
+            [ __CLASS__, 'render_vars_helper_meta_box' ],
+            $post_type,
+            'side',
+            'high'
+        );
+    }
+
+    /**
+     * meta box 內容：列出可用變數，點擊可複製
+     */
+    public static function render_vars_helper_meta_box( $post ) {
+
+        $vars = get_option( 'woc_contract_global_vars', [] );
+        if ( ! is_array( $vars ) || empty( $vars ) ) {
+            echo '<p>目前尚未設定任何合約變數。</p>';
+            return;
+        }
+
+        echo '<div id="woc-vars-helper-box">';
+
+        foreach ( $vars as $key => $row ) {
+
+            $key = sanitize_key( $key );
+            if ( $key === '' ) {
+                continue;
+            }
+
+            if ( is_array( $row ) ) {
+                $label = isset( $row['label'] ) && $row['label'] !== '' ? $row['label'] : $key;
+            } else {
+                $label = $key;
+            }
+
+            $placeholder = '{' . $key . '}';
+
+            printf(
+                '<p><button type="button" class="button button-small woc-copy-var" data-copy="%s">%s：%s</button></p>',
+                esc_attr( $placeholder ),
+                esc_html( $label ),
+                esc_html( $placeholder )
+            );
+        }
+
+        echo '<p class="description">點按上方按鈕可複製變數代碼，在內容中貼上使用。</p>';
+        echo '</div>';
+    }
+
+
     
 
 

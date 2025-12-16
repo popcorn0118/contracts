@@ -65,35 +65,51 @@ jQuery(function ($) {
     });
 
 
-    // 複製網址
-    $('#woc-copy-link-btn').on('click', function (e) {
+    // 複製簽署連結（不使用 execCommand）
+    $(document).on('click', '#woc-copy-link-btn', function (e) {
         e.preventDefault();
-
-        var link  = $(this).data('link');
+    
+        var $btn   = $(this);
+        var link   = $btn.data('link') || '';
         var $input = $('#woc-contract-link-url');
-
-        function fallbackCopy() {
-            if ($input.length) {
-                $input.trigger('focus').trigger('select');
-            }
-            try {
-                document.execCommand('copy');
-                alert('連結已複製');
-            } catch (err) {
-                alert('請手動複製上方連結');
-            }
+    
+        // UI 提示（沿用你想要的「已複製」概念，不一定要 alert）
+        function flashBtn(text) {
+        var old = $btn.text();
+        $btn.text(text);
+        setTimeout(function () { $btn.text(old); }, 800);
         }
-
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(link).then(function () {
-                alert('連結已複製');
-            }).catch(function () {
-                fallbackCopy();
-            });
+    
+        function manualCopyFallback() {
+        // 只能做到「讓使用者更好複製」：選取文字 + 提示 Ctrl+C
+        if ($input.length) {
+            if (link && $input.val() !== link) $input.val(link);
+            $input.trigger('focus').trigger('select');
+            alert('已選取連結，請按 Ctrl+C（Mac：⌘C）複製');
         } else {
-            fallbackCopy();
+            // 連 input 都沒有的話，用 prompt 讓使用者手動複製
+            window.prompt('請手動複製以下連結：', link);
+        }
+        }
+    
+        if (!link && $input.length) {
+        link = $input.val() || '';
+        }
+        if (!link) return;
+    
+        // 先走 Clipboard API（成功才算真的複製）
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(link).then(function () {
+            flashBtn('已複製');
+            // 你若堅持 alert，也可以改回 alert('連結已複製');
+        }).catch(function () {
+            manualCopyFallback();
+        });
+        } else {
+        manualCopyFallback();
         }
     });
+  
 
     // 開啟連結
     $('#woc-open-link-btn').on('click', function (e) {
@@ -126,6 +142,32 @@ jQuery(function ($) {
         // 給外層一個狀態 class，讓 CSS 控制樣式
         $('#postdivrich').addClass('is_signed');
     }
+
+    // ========= 按鈕點擊複製變數 =========
+
+    $('#woc-vars-helper-box').on('click', '.woc-copy-var', function(e){
+        e.preventDefault();
+        
+        var code = $(this).data('copy');
+        if (!code) return;
+        
+        var done = () => {
+            // 最簡單的回饋：改文字 800ms 再改回來（不額外做 toast 系統）
+            var $btn = $(this);
+            var old = $btn.text();
+            $btn.text('已複製');
+            setTimeout(() => $btn.text(old), 800);
+        };
+        
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(code).then(done).catch(function () {
+            window.prompt('請手動複製以下內容：', code);
+            });
+        } else {
+            window.prompt('請手動複製以下內容：', code);
+        }
+        });
+    
 
     
 

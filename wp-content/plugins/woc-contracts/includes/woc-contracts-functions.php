@@ -5,10 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * 取得全站合約變數的「搜尋字串 => 取代值」對照表
- *
- * 同時支援：
- *  - 'company_name' => 'XXX有限公司'
- *  - 'company_name' => [ 'key' => 'company_name', 'value' => 'XXX有限公司' ]
+ * 例： [ '{company_name}' => '爆米花工作室', '{company_address}' => '高雄市…' ]
  */
 function woc_get_global_var_pairs() {
 
@@ -20,26 +17,24 @@ function woc_get_global_var_pairs() {
 
     $pairs = [];
 
-    foreach ( $vars as $idx => $row ) {
+    foreach ( $vars as $key => $row ) {
 
-        if ( is_array( $row ) ) {
-            // 舊版結構：陣列裡有 key / value
-            $key   = isset( $row['key'] )   ? $row['key']   : $idx;
-            $value = isset( $row['value'] ) ? $row['value'] : '';
-        } else {
-            // 目前你的結構：key => '純字串'
-            $key   = $idx;
-            $value = $row;
-        }
-
-        $key   = sanitize_key( trim( (string) $key ) );
-        $value = (string) $value;
-
-        if ( $key === '' || $value === '' ) {
+        $key = sanitize_key( $key );
+        if ( $key === '' ) {
             continue;
         }
 
-        // 組成 {company_name}
+        // 兼容舊資料（純字串）與新資料（陣列）
+        if ( is_array( $row ) ) {
+            $value = isset( $row['value'] ) ? (string) $row['value'] : '';
+        } else {
+            $value = (string) $row;
+        }
+
+        if ( $value === '' ) {
+            continue;
+        }
+
         $pairs[ '{' . $key . '}' ] = $value;
     }
 
