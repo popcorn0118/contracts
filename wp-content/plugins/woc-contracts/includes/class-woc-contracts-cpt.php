@@ -150,34 +150,67 @@ class WOC_Contracts_CPT {
             wp_die( '權限不足。' );
         }
 
+        $errors = [];
+        $rows   = [];
+
         // 儲存
         if (
             isset( $_POST['woc_vars_nonce'] ) &&
             wp_verify_nonce( $_POST['woc_vars_nonce'], 'woc_save_vars' )
         ) {
 
-            $keys   = isset( $_POST['woc_var_key'] )   ? (array) $_POST['woc_var_key']   : [];
-            $labels = isset( $_POST['woc_var_label'] ) ? (array) $_POST['woc_var_label'] : [];
-            $values = isset( $_POST['woc_var_value'] ) ? (array) $_POST['woc_var_value'] : [];
+            $keys    = isset( $_POST['woc_var_key'] )    ? (array) $_POST['woc_var_key']    : [];
+            $labels  = isset( $_POST['woc_var_label'] )  ? (array) $_POST['woc_var_label']  : [];
+            $values  = isset( $_POST['woc_var_value'] )  ? (array) $_POST['woc_var_value']  : [];
+            $deletes = isset( $_POST['woc_var_delete'] ) ? (array) $_POST['woc_var_delete'] : [];
 
             $vars = [];
 
-            foreach ( $keys as $i => $raw_key ) {
-                $raw_key = trim( wp_unslash( $raw_key ) );
-                $value   = isset( $values[ $i ] ) ? wp_unslash( $values[ $i ] ) : '';
-                $label   = isset( $labels[ $i ] ) ? wp_unslash( $labels[ $i ] ) : '';
+            $max = max( count( $keys ), count( $labels ), count( $values ), count( $deletes ) );
 
+            for ( $i = 0; $i < $max; $i++ ) {
+
+                $raw_key = isset( $keys[ $i ] ) ? trim( wp_unslash( $keys[ $i ] ) ) : '';
+                $label   = isset( $labels[ $i ] ) ? wp_unslash( $labels[ $i ] ) : '';
+                $value   = isset( $values[ $i ] ) ? wp_unslash( $values[ $i ] ) : '';
+                $delete  = ! empty( $deletes[ $i ] );
+
+                // 回填用（就算有錯也不要把列弄丟）
+                $rows[] = [
+                    'key'    => $raw_key,
+                    'label'  => $label,
+                    'value'  => $value,
+                    'delete' => $delete ? '1' : '0',
+                ];
+
+                // 刪除的列：不驗證、不存
+                if ( $delete ) {
+                    continue;
+                }
+
+                $label_trim = trim( (string) $label );
+                $value_trim = trim( (string) $value );
+
+                // 整列都空：視為空白模板列，允許存在、不擋存、也不寫入
+                if ( $raw_key === '' && $label_trim === '' && $value_trim === '' ) {
+                    continue;
+                }
+
+                // 代碼必填：只要這列有填任何東西但代碼空，就擋存
                 if ( $raw_key === '' ) {
+                    $errors[] = '儲存失敗，第 ' . ( $i + 1 ) . ' 列：變數代碼必填。';
                     continue;
                 }
 
                 $key = sanitize_key( $raw_key );
                 if ( $key === '' ) {
+                    $errors[] = '第 ' . ( $i + 1 ) . ' 列：變數代碼格式不正確（只能英文/數字/底線）。';
                     continue;
                 }
 
                 // 禁止覆蓋固定系統變數
                 if ( in_array( $key, self::get_reserved_var_keys(), true ) ) {
+                    $errors[] = '第 ' . ( $i + 1 ) . ' 列：' . $key . ' 是固定系統變數，不能使用。';
                     continue;
                 }
 
@@ -187,15 +220,55 @@ class WOC_Contracts_CPT {
                 ];
             }
 
-            update_option( 'woc_contract_global_vars', $vars );
+            if ( empty( $errors ) ) {
+                update_option( 'woc_contract_global_vars', $vars );
+                echo '<div class="updated"><p>已儲存合約變數。</p></div>';
 
-            echo '<div class="updated"><p>已儲存合約變數。</p></div>';
+                // 成功後用 DB 結果重建 rows（避免殘留 delete=1）
+                $rows = [];
+                foreach ( $vars as $k => $row ) {
+                    $rows[] = [
+                        'key'    => $k,
+                        'label'  => $row['label'] ?? '',
+                        'value'  => $row['value'] ?? '',
+                        'delete' => '0',
+                    ];
+                }
+            } else {
+                echo '<div class="notice notice-error"><p>' . implode( '<br>', array_map( 'esc_html', $errors ) ) . '</p></div>';
+                // 有錯就用 $rows 回填（不要再從 DB 抓，不然你那列又會「消失」）
+            }
         }
 
-        // 讀取現有設定（兼容舊資料：字串 -> 包成陣列）
-        $vars = get_option( 'woc_contract_global_vars', [] );
-        if ( ! is_array( $vars ) ) {
-            $vars = [];
+        // 沒有 POST（第一次載入）才從 DB 讀
+        if ( empty( $rows ) ) {
+
+            $vars = get_option( 'woc_contract_global_vars', [] );
+            if ( ! is_array( $vars ) ) {
+                $vars = [];
+            }
+
+            foreach ( $vars as $key => $row ) {
+
+                if ( is_array( $row ) ) {
+                    $label = isset( $row['label'] ) ? $row['label'] : '';
+                    $val   = isset( $row['value'] ) ? $row['value'] : '';
+                } else {
+                    $label = '';
+                    $val   = $row;
+                }
+
+                $rows[] = [
+                    'key'    => (string) $key,
+                    'label'  => (string) $label,
+                    'value'  => (string) $val,
+                    'delete' => '0',
+                ];
+            }
+
+            if ( empty( $rows ) ) {
+                $rows[] = [ 'key' => '', 'label' => '', 'value' => '', 'delete' => '0' ];
+            }
         }
 
         $fixed_vars = self::get_fixed_vars();
@@ -230,7 +303,6 @@ class WOC_Contracts_CPT {
                 </tbody>
             </table>
 
-
             <form method="post">
                 <?php wp_nonce_field( 'woc_save_vars', 'woc_vars_nonce' ); ?>
 
@@ -240,46 +312,45 @@ class WOC_Contracts_CPT {
                             <th style="width: 20%;">識別文字</th>
                             <th style="width: 25%;">變數代碼（英文/數字/底線）</th>
                             <th>內容</th>
+                            <th style="width: 80px; text-align:center;">刪除</th>
                         </tr>
                     </thead>
                     <tbody id="woc-vars-rows">
-                        <?php
-                        if ( empty( $vars ) ) {
-                            $vars = [ '' => [ 'label' => '', 'value' => '' ] ];
-                        }
+                        <?php foreach ( $rows as $row ) :
 
-                        foreach ( $vars as $key => $row ) :
+                            $key    = isset( $row['key'] ) ? (string) $row['key'] : '';
+                            $label  = isset( $row['label'] ) ? (string) $row['label'] : '';
+                            $val    = isset( $row['value'] ) ? (string) $row['value'] : '';
+                            $delete = ! empty( $row['delete'] );
 
-                            if ( is_array( $row ) ) {
-                                $label = isset( $row['label'] ) ? $row['label'] : '';
-                                $val   = isset( $row['value'] ) ? $row['value'] : '';
-                            } else {
-                                $label = '';
-                                $val   = $row;
-                            }
+                            $tr_style = $delete ? 'display:none;' : '';
                             ?>
-                            <tr>
+                            <tr style="<?php echo esc_attr( $tr_style ); ?>">
                                 <td>
                                     <input type="text"
-                                           name="woc_var_label[]"
-                                           value="<?php echo esc_attr( $label ); ?>"
-                                           class="regular-text"
-                                           placeholder="公司名稱、公司地址…">
+                                        name="woc_var_label[]"
+                                        value="<?php echo esc_attr( $label ); ?>"
+                                        class="regular-text"
+                                        placeholder="公司名稱、公司地址…">
                                 </td>
                                 <td>
                                     <input type="text"
-                                           name="woc_var_key[]"
-                                           value="<?php echo esc_attr( $key ); ?>"
-                                           class="regular-text"
-                                           placeholder="例如 company_name">
+                                        name="woc_var_key[]"
+                                        value="<?php echo esc_attr( $key ); ?>"
+                                        class="regular-text"
+                                        placeholder="例如 company_name">
                                 </td>
                                 <td>
                                     <textarea name="woc_var_value[]"
-                                              rows="2"
-                                              class="large-text"
-                                              placeholder="例如 xx有限公司"><?php
+                                            rows="2"
+                                            class="large-text"
+                                            placeholder="例如 xx有限公司"><?php
                                         echo esc_textarea( $val );
                                     ?></textarea>
+                                </td>
+                                <td style="text-align:center;">
+                                    <input type="hidden" name="woc_var_delete[]" value="<?php echo $delete ? '1' : '0'; ?>">
+                                    <button type="button" class="button woc-var-delete">刪除</button>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -288,22 +359,29 @@ class WOC_Contracts_CPT {
                         <tr class="woc-vars-empty-row" style="display:none;">
                             <td>
                                 <input type="text"
-                                       name="woc_var_label[]"
-                                       value=""
-                                       class="regular-text"
-                                       placeholder="公司名稱、公司地址…">
+                                    name="woc_var_label[]"
+                                    value=""
+                                    class="regular-text"
+                                    placeholder="公司名稱、公司地址…"
+                                    disabled>
                             </td>
                             <td>
                                 <input type="text"
-                                       name="woc_var_key[]"
-                                       value=""
-                                       class="regular-text"
-                                       placeholder="例如 company_office">
+                                    name="woc_var_key[]"
+                                    value=""
+                                    class="regular-text"
+                                    placeholder="例如 company_office"
+                                    disabled>
                             </td>
                             <td>
                                 <textarea name="woc_var_value[]"
-                                          rows="2"
-                                          class="large-text"></textarea>
+                                        rows="2"
+                                        class="large-text"
+                                        disabled></textarea>
+                            </td>
+                            <td style="text-align:center;">
+                                <input type="hidden" name="woc_var_delete[]" value="0" disabled>
+                                <button type="button" class="button woc-var-delete" disabled>刪除</button>
                             </td>
                         </tr>
                     </tbody>
@@ -323,16 +401,26 @@ class WOC_Contracts_CPT {
         (function($){
             $('#woc-add-var-row').on('click', function(e){
                 e.preventDefault();
-                var $tmpl  = $('.woc-vars-empty-row');
+                var $tmpl  = $('.woc-vars-empty-row').first();
                 var $clone = $tmpl.clone();
                 $clone.removeClass('woc-vars-empty-row').show();
-                $clone.find('input, textarea').val('');
+                $clone.find('input, textarea, button').prop('disabled', false);
+                $clone.find('input[type="text"], textarea').val('');
+                $clone.find('input[name="woc_var_delete[]"]').val('0');
                 $('#woc-vars-rows').append($clone);
+            });
+
+            $(document).on('click', '.woc-var-delete', function(e){
+                e.preventDefault();
+                var $tr = $(this).closest('tr');
+                $tr.find('input[name="woc_var_delete[]"]').val('1');
+                $tr.hide();
             });
         })(jQuery);
         </script>
         <?php
     }
+
 
 
     /**
