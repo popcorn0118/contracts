@@ -32,7 +32,7 @@ $err = isset( $_GET['err'] ) ? sanitize_key( wp_unslash( $_GET['err'] ) ) : '';
 <?php endif; ?>
 
 
-<div class="woc-contract-wrap">
+<div class="woc-contract-wrap woc-contract-wrap-print">
     <?php if ( ! $valid ) : ?>
 
         <h1 style="text-align:center;font-size:28px;margin-bottom:20px;">合約連結無效</h1>
@@ -61,26 +61,30 @@ $err = isset( $_GET['err'] ) ? sanitize_key( wp_unslash( $_GET['err'] ) ) : '';
 
             <?php if ( $is_signed ) : ?>
 
-                <h2 class="signUsingTitle"><span>簽署資訊</span></h2>
+                <h2 class="signUsingTitle no-print"><span>簽署資訊</span></h2>
 
                 <?php if ( $signature_url ) : ?>
-                    <p>簽名：</p>
+                    <p class="no-print">簽名：</p>
                     <div class="woc-signature-image-box">
                         <img src="<?php echo esc_url( $signature_url ); ?>" alt="Signature" class="woc-signature-image">
                     </div>
                 <?php endif; ?>
 
-                <?php if ( $signed_at ) : ?>
-                    <p>已簽約時間：<?php echo esc_html( $signed_at ); ?></p>
-                <?php endif; ?>
+                <div class="woc-signature-info">
+                    <?php if ( $signed_at ) : ?>
+                        <p>已簽約時間：<?php echo esc_html( $signed_at ); ?></p>
+                    <?php endif; ?>
 
-                <?php if ( $signed_ip ) : ?>
-                    <p>簽署 IP：<?php echo esc_html( $signed_ip ); ?></p>
-                <?php endif; ?>
+                    <?php if ( $signed_ip ) : ?>
+                        <p>簽署 IP：<?php echo esc_html( $signed_ip ); ?></p>
+                    <?php endif; ?>
+                    <p class="no-print" style="margin-bottom:15px;">此合約已完成簽署，內容僅供檢視與列印。</p>
+                </div>
+                
 
-                <p style="margin-bottom:15px;">此合約已完成簽署，內容僅供檢視與列印。</p>
+                
 
-                <div class="woc-button-warp">
+                <div class="woc-button-warp no-print">
                     <button type="button" id="woc-print" onclick="window.print();">列印合約</button>
                 </div>
 
@@ -248,6 +252,20 @@ $err = isset( $_GET['err'] ) ? sanitize_key( wp_unslash( $_GET['err'] ) ) : '';
         });
     }
 })();
+
+
+
+// document.getElementById('woc-print')?.addEventListener('click', function () {
+//   const oldTitle = document.title;
+
+//   // 你要的檔名（不要加 .pdf，讓瀏覽器自己處理）
+//   document.title = '委託契約書_' + (new Date().toISOString().slice(0,10));
+
+//   window.print();
+
+//   // 印完恢復
+//   document.title = oldTitle;
+// });
 </script>
 
 

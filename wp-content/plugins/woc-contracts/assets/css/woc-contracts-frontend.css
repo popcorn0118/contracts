@@ -3,6 +3,7 @@
 #content .ast-container {
     display: flex;
     flex-direction: column;
+    padding: 0;
 }
 @media (max-width: 580px) {
   #content .ast-container {
@@ -20,9 +21,13 @@
     flex-direction: column;
     font-size:16px;
   }
-  @media (max-width: 580px) {
+  @media (max-width: 1000px) {
     .woc-contract-wrap {
       margin: 0;
+    }
+  }
+  @media (max-width: 580px) {
+    .woc-contract-wrap {
       padding:25px;
     }
   }
@@ -106,9 +111,7 @@
     width: 100%;
 }
 .signedImg {width: 100%;}
-.red {
-  color: red;
-}
+
 .c_t_center {
     text-align: center;
 }
@@ -150,13 +153,31 @@
   padding: 0 20px;
 }
 .c_date {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   float: left;
   width: 100%;
   text-align: center;
   margin-bottom: 20px;
   font-size: 22px;
   position: relative;
+  min-height: 80px;
 }
+
+.c_date::before {
+  content: '';
+  width: 80px !important;
+}
+.c_date-text {
+  line-height: 1;
+}
+.seal-img {
+  width: 80px !important;
+
+}
+
+
 .c_cont_chack{
   display: block;
   line-height: 1.6em;
@@ -166,12 +187,6 @@
 }
 .fz-s {
   
-}
-.seal-img {
-  width: 80px !important;
-  position: absolute;
-  right: 20px;
-  bottom: 0px;
 }
 .row {
   display: flex;
@@ -188,6 +203,10 @@
 @media (max-width: 767px) {
   .c_into,.row .col-33 {
     width: 100%;
+    margin: 20px 0 0 0;
+  }
+  .c_into:last-of-type, .row .col-33:last-of-type {
+    margin-bottom: 20px;
   }
   .row li {
         width: 100%;
@@ -233,3 +252,89 @@ canvas#woc-signature-pad {
 .single-woc_contract #page > header, .single-woc_contract #page > footer {
     display: none;
 }
+
+
+
+
+@media print {
+
+  /* 給列表機看的 */
+  @page { size: A4; margin: 10mm; }
+
+  /* 只做顯示/隱藏 */
+  body * { visibility: hidden !important; }
+
+  .woc-contract-wrap-print,
+  .woc-contract-wrap-print * { visibility: visible !important; }
+
+  /* no-print 要用 !important，避免被你自己的 visibility 放行後又顯示 */
+  .woc-contract-wrap-print .no-print { display: none !important; }
+
+  /* 不要用 absolute：會影響分頁、內容高度計算，Firefox/Chrome 分歧更大 */
+  .woc-contract-wrap-print {
+    position: static !important;
+    width: 100% !important;
+    padding: 0;
+    margin: 0;
+    
+  }
+  .woc-contract-wrap-print * {
+    line-height: 1.6 !important;
+    font-size: 10pt;
+  }
+  /* .woc-contract-wrap-print .c_into{
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+  .woc-contract-wrap-print .c_into{
+    float: none !important;
+    width: 100% !important;
+  } */
+  .c_title {
+    font-size: 16pt;
+  }
+  .c_into {
+    width: 50%;
+  }
+
+  /* 重置頁面外圍即可 */
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* 常見干擾源（Astra/WordPress） */
+  #wpadminbar,
+  header, footer, .woc-contract-copyright {
+    display: none !important;
+  }
+
+  /* 簽名+簽名資訊 */
+  .woc-contract-signed {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .woc-signature-image-box, .woc-signature-info {
+    width: 50%;
+  }
+  .woc-signature-image-box img {
+    width: 50mm;
+    max-width: 100%;
+  }
+  .woc-signature-info {
+    padding-left: 20mm;
+  }
+
+  /* 重要：避免簽名區、被切半 */
+  img, .woc-contract-wrap-print .c_into { 
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+   }
+
+   /* 螢幕看不到@page 所以加入模擬列印樣式，調整列印樣式時再打開 */
+   /* .woc-contract-wrap-print {    
+      padding: 10mm; 
+    } */
+}
+
