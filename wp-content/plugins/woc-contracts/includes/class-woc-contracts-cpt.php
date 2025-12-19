@@ -35,6 +35,9 @@ class WOC_Contracts_CPT {
         add_action( 'init',       [ __CLASS__, 'register_post_types' ], 0 );
         // 等 CPT 註冊好之後再掛選單
         add_action( 'admin_menu', [ __CLASS__, 'register_admin_menus' ] );
+
+        //只跑一次塞 caps 給管理員
+        add_action( 'init', [ __CLASS__, 'add_template_caps_once' ], 20 );
     }
 
     /**
@@ -98,12 +101,16 @@ class WOC_Contracts_CPT {
                 // 'show_in_rest'  => true,   // ✅ 開 Gutenberg
                 'public'          => false,
                 'show_ui'         => true,
-                'show_in_menu'    => false,              // 選單待會手動掛
+                'show_in_menu'    => false,
                 'supports'        => [ 'title', 'editor' ],
                 'has_archive'     => false,
                 'rewrite'         => false,
-                'capability_type' => 'post',
+            
+                'capability_type' => [ 'woc_template', 'woc_templates' ],
                 'map_meta_cap'    => true,
+                'capabilities'    => [
+                  'create_posts' => 'edit_woc_templates',
+                ],
             ]
         );
     }
@@ -121,7 +128,7 @@ class WOC_Contracts_CPT {
             $parent_slug,
             '合約範本',           // 頁面標題
             '合約範本',           // 選單文字
-            'manage_options',         // 權限
+            'edit_woc_templates',         // 權限
             $submenu_slug         // 導向的頁面 slug
         );
 
@@ -134,6 +141,7 @@ class WOC_Contracts_CPT {
             [ __CLASS__, 'render_vars_page' ]
         );
     }
+    
 
     /**
      * 合約變數設定頁
@@ -452,6 +460,37 @@ class WOC_Contracts_CPT {
     public static function get_reserved_var_keys() {
         return [ self::FIXED_VAR_YEAR, self::FIXED_VAR_MONTH, self::FIXED_VAR_DAY ];
     }
+
+    /**
+     * 管理員權限
+     */
+    public static function add_template_caps_once() {
+        if ( get_option('woc_template_caps_added') ) return;
+      
+        $role = get_role('administrator');
+        if ( ! $role ) return;
+      
+        $caps = [
+          'edit_woc_template',
+          'read_woc_template',
+          'delete_woc_template',
+          'edit_woc_templates',
+          'edit_others_woc_templates',
+          'publish_woc_templates',
+          'read_private_woc_templates',
+          'delete_woc_templates',
+          'delete_private_woc_templates',
+          'delete_published_woc_templates',
+          'delete_others_woc_templates',
+          'edit_private_woc_templates',
+          'edit_published_woc_templates',
+        ];
+      
+        foreach ($caps as $cap) $role->add_cap($cap);
+      
+        update_option('woc_template_caps_added', 1);
+      }
+      
 
 
     /**

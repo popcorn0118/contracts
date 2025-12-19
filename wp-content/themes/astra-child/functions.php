@@ -39,11 +39,11 @@ function create_post_type() {
 		'supports'    => array('title', 'editor', 'thumbnail', 'excerpt', 'revisions'),
 		'taxonomies'  => array('case-type', 'case-tag'),
 
-		// ✅ 自訂權限（重點）
+		// 自訂權限
 		'capability_type' => array('case', 'cases'),
 		'map_meta_cap'    => true,
 		'capabilities'    => array(
-			'create_posts' => 'edit_cases', // ✅ 讓「新增」跟 edit_cases 綁一起
+			'create_posts' => 'edit_cases', //  讓「新增」跟 edit_cases 綁一起
 		),
 	));
 }
