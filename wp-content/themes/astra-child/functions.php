@@ -91,11 +91,54 @@ add_action('init', function () {
 		),
 		'public'      => false,
 		'show_ui'     => true,
-		'show_in_menu'=> 'edit.php?post_type=case', // ✅ 掛到「案例見證」底下
+
+		// 掛在「案例見證」底下
+		'show_in_menu'=> 'edit.php?post_type=case',
+
 		'supports'    => array('title', 'editor', 'revisions'),
+
+		// ✅ 自訂權限：只有拿到 edit_case_templates 的人才能看到/進去
+		'capability_type' => array('case_template', 'case_templates'),
+		'map_meta_cap'    => true,
+		'capabilities'    => array(
+			'create_posts' => 'edit_case_templates',
+		),
 	));
 
 });
+
+add_action('init', function () {
+
+	if ( get_option('qz_case_template_caps_added') ) return;
+
+	$role = get_role('administrator');
+	if ( ! $role ) return;
+
+	$caps = array(
+		'edit_case_template',
+		'read_case_template',
+		'delete_case_template',
+		'edit_case_templates',
+		'edit_others_case_templates',
+		'publish_case_templates',
+		'read_private_case_templates',
+		'delete_case_templates',
+		'delete_private_case_templates',
+		'delete_published_case_templates',
+		'delete_others_case_templates',
+		'edit_private_case_templates',
+		'edit_published_case_templates',
+	);
+
+	foreach ( $caps as $cap ) {
+		$role->add_cap($cap);
+	}
+
+	update_option('qz_case_template_caps_added', 1);
+
+}, 20);
+
+
 
 
 
