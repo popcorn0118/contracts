@@ -41,6 +41,26 @@ $err = isset( $_GET['err'] ) ? sanitize_key( wp_unslash( $_GET['err'] ) ) : '';
 
     <?php else : ?>
 
+        <?php
+            // 先擋密碼（且保留 ?t=...）
+            if ( post_password_required( $post ) ) {
+
+                $action   = esc_url( site_url( 'wp-login.php?action=postpass', 'login_post' ) );
+                $redirect = esc_url( add_query_arg( null, null ) );
+
+                echo '<form class="post-password-form" action="' . $action . '" method="post">';
+                echo '<p>此內容受密碼保護。若要查看此內容，請在下方輸入密碼。</p>';
+                echo '<p><label>密碼 <input name="post_password" type="password" size="20" /></label> ';
+                echo '<input type="submit" name="Submit" value="送出" /></p>';
+                echo '<input type="hidden" name="redirect_to" value="' . $redirect . '">';
+                echo '</form>';
+
+                get_footer();
+                exit;
+            }
+        ?>
+
+
         <!-- <h1 style="text-align:center;font-size:28px;margin-bottom:30px;">
             <?php //echo esc_html( get_the_title( $contract_id ) ); ?>
         </h1> -->
