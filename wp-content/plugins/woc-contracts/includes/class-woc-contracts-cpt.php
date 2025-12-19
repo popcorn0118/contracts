@@ -121,7 +121,7 @@ class WOC_Contracts_CPT {
             $parent_slug,
             '合約範本',           // 頁面標題
             '合約範本',           // 選單文字
-            'edit_posts',         // 權限
+            'manage_options',         // 權限
             $submenu_slug         // 導向的頁面 slug
         );
 
